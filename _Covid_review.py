@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Calculate and plot Covid statistics
-Based off of Johns Hopkins data
+Created on Fri Jan 15 11:36:48 2021
 
-https://github.com/CSSEGISandData/COVID-19/
+@author: nb137
 """
 
 # Data Setup
 import os
 import sys
-covid_github_folder = input("Paste location of JH github folder:")
-# https://github.com/CSSEGISandData/COVID-19/ Use this repo for updated data
-os.system(r'github '+covid_github_folder)     # Update data from github before plotting
+# Hide my folder tree for publication online, but this is me ensuring I've updated my data
+os.system(r'github COVID_GH_FOLDER')     # Can't update from terminal, but this will remind me to pull data if i haven't
 response = input("Was GitHub updated? y/n: ")
 if response == 'n':
     sys.exit()
@@ -35,10 +33,13 @@ print("Dashboard updated:\t{} \nLatest Data:\t\t{}".format(today,latest_data))
 import matplotlib
 matplotlib.rc('font',size=8)
 
+# Select AZ, CA, ME, NY OR,TX WA, WI
+state_info = state_info.iloc[[0,1,7,8,9,12,14,15,16]]
+
 # New Cases Per Capita
 # TODO: Plot days ago to show indication of when cases may not be reported yet
 plt.figure(figsize=(12,6))
-for i,r in state_info.iloc[:8].iterrows():
+for i,r in state_info.iterrows():
     new_cases_per_pop = combine['Confirmed',r['State']].diff().rolling(7).mean()/(r['Pop']/1e5)
     plt.plot(combine.index, new_cases_per_pop,linewidth=3, label=r['State'])
 plt.title('New Cases/100k/day 7d rolling')
@@ -49,38 +50,10 @@ plt.ylim(1e0,15e1)
 plt.legend()
 plt.grid(which='both')
 
-plt.figure(figsize=(12,6))
-for i,r in state_info.iloc[8:].iterrows():
-    new_cases_per_pop =  combine['Confirmed',r['State']].diff().rolling(7).mean()/(r['Pop']/1e5)
-    plt.plot(combine.index, new_cases_per_pop,linewidth=3, label=r['State'])
-plt.title('New Cases/100k/day 7d rolling')
-plt.yscale('log')
-plt.ylabel('log scale cases/100k')
-plt.xlabel('Date')
-plt.ylim(1e0,15e1)
-plt.legend()
-plt.grid(which='both')
-
-
-# Remove hospitalization as of 10/5
-#Hospitalization estimation (limited data)
-"""
-plt.figure(figsize=(16,8))
-for i,r in state_info[:8].iterrows():
-    plt.plot(combine.index, combine['Hospitalization_Rate',r['State']], label=r['State'])
-plt.title("Hospitalization per 100k")
-plt.legend()
-plt.figure(figsize=(16,8))
-for i,r in state_info[8:].iterrows():
-    plt.plot(combine.index, combine['Hospitalization_Rate',r['State']], label=r['State'])
-plt.title("Hospitalization per 100k")
-plt.legend()
-"""
-
 # Testing Rates
 combine = combine['6/1/2020':]
 
-for sub in [state_info[:8],state_info[8:]]:
+for sub in [state_info]:
     td = combine.index[-1]
     plt.figure(figsize=(12,6))
     plt.subplot(2,1,1)
@@ -114,9 +87,10 @@ for sub in [state_info[:8],state_info[8:]]:
 county_data = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
 df = pd.read_csv(county_data, parse_dates=[0])
 
-
 mult_pop = 812855   # 2019 pop
 har_pop = 4.713e6
+sol_pop = 447643
+
 
 mem_day = pd.datetime(2020,5,25)
 first_protest = pd.datetime(2020,6,4)
@@ -131,40 +105,83 @@ mult['new_cases'] = mult['cases'].diff()
 mult['smooth'] = mult['new_cases'].rolling(7).mean()
 plt.bar(mult.index, mult.new_cases,color='grey',alpha=0.5,label='New Cases Raw')
 plt.plot(mult.index, mult.smooth, label='7d avg',color='black')
-
-#plt.plot([mem_day,mem_day],marker,c='r',label='Memorial Day')
-#plt.plot([first_protest,first_protest],marker,c='orange',label='First Major Protest')
-#plt.plot([five_day,five_day],marker,'--',c='gray',label='5d ago')
-
 plt.legend()
+ax1 = plt.gca()
+ax2 = ax1.twinx()
+ax2.set_ylim([i*1e5/mult_pop for i in ax1.get_ylim()])
+ax2.set_ylabel('New Cases per 100k')
+ax1.set_ylabel('New Cases')
 plt.xlabel('Date')
-plt.ylabel("New Cases")
 plt.title("Mult. Co., OR - raw and 7d avg new cases")
 
-
+plt.figure(figsize=(12,6))
 marker = [0,1200]
 marker = [0,.01]
 har = df[(df['county']=="Harris") & (df['state']=="Texas")]
 har.index = har.date
 har['new_cases'] = har['cases'].diff()
 har['smooth'] = har['new_cases'].rolling(7).mean()
-plt.figure(figsize=(12,6))
-plt.bar(har.index, har.new_cases,label='New Cases Raw',color='gray',alpha=0.5)
+plt.bar(har.index, har.new_cases,color='grey',alpha=0.5,label='New Cases Raw')
 plt.plot(har.index, har.smooth, label='7d avg',color='black')
-#plt.plot([mem_day,mem_day],marker,c='r',label='Memorial Day')
-#plt.plot([first_protest,first_protest],marker,c='orange',label='First Major Protest')
-#plt.plot([five_day,five_day],marker,c='green',label='5d ago')
 plt.legend()
-plt.ylabel("New Cases")
+plt.ylim(0,4000)
+ax1 = plt.gca()
+ax2 = ax1.twinx()
+ax2.set_ylim([i*1e5/har_pop for i in ax1.get_ylim()])
+ax2.set_ylabel('New Cases per 100k')
+ax1.set_ylabel('New Cases')
+plt.xlabel('Date')
 plt.title("Harris County - Raw and 7d avg New Cases")
-plt.ylim(0,3000)
 
+plt.figure(figsize=(12,6))
+sol = df[df['county']=="Solano"]
+sol.index = sol.date
+sol['new_cases'] = sol['cases'].diff()
+sol['smooth'] = sol['new_cases'].rolling(7).mean()
+plt.bar(sol.index, sol.new_cases,color='grey',alpha=0.5,label='New Cases Raw')
+plt.plot(sol.index, sol.smooth, label='7d avg',color='black')
+plt.legend()
+ax1 = plt.gca()
+ax2 = ax1.twinx()
+ax2.set_ylim([i*1e5/sol_pop for i in ax1.get_ylim()])
+ax2.set_ylabel('New Cases per 100k')
+ax1.set_ylabel('New Cases')
+plt.xlabel('Date')
+plt.title("Solano Co. - raw and 7d avg new cases")
+
+la = df[df['county']=="Los Angeles"]
+la.index = la.date
+la['new_cases'] = la['cases'].diff()
+la['smooth'] = la['new_cases'].rolling(7).mean()
+la_pop = 10.04e6
+
+ri = df[df['county']=="Providence"]
+ri.index = ri.date
+ri['new_cases'] = ri['cases'].diff()
+ri['smooth'] = ri['new_cases'].rolling(7).mean()
+ri_pop = 638931
     
+# Cases per capita on one plot
+plt.figure(figsize=(12,6))
+plt.plot(mult.index, mult.smooth*1e5/mult_pop, label='Mult Co 7d avg')
+plt.plot(har.index, har.smooth*1e5/har_pop, label='Harris Co. 7d avg')
+plt.plot(sol.index, sol.smooth*1e5/sol_pop, label='Solano Co. 7d avg')
+plt.plot(la.index, la.smooth*1e5/la_pop, label='LA Co. 7d avg')
+#plt.plot(ri.index, ri.smooth*1e5/ri_pop, label='Prov Co. 7d avg')
+plt.xlabel('Date')
+plt.ylabel('New cases per capita (100k)')
+plt.title('New cases 7d average for county level')
+plt.grid(which='both')
+plt.legend()
+ax = plt.gca()
+ax.yaxis.tick_right()
+ax.yaxis.set_label_position("right")
+
 # Rate of Cases Change Estimation
 d_i_r = 18    # Days from infection to recovery
 subset = combine['6/1/20':]
 plt.figure(figsize=(12,6))
-for i,r in state_info[:8].iterrows():
+for i,r in state_info.iterrows():
     new_cases =  subset['Confirmed',r['State']].diff()
     #new_deaths = subset['Deaths',r['State']].diff() #TODO: add this for R_0 estimations?
     current_cases = subset['Confirmed',r['State']].diff().rolling(d_i_r).sum()   # Sum last 15 days of new cases to estimate currently infected number
@@ -179,24 +196,7 @@ plt.ylabel('R_0')
 plt.xlabel('Date')
 plt.ylim(0,5)
 plt.legend()
-plt.grid(which='both')
 
-plt.figure(figsize=(12,6))
-for i,r in state_info[8:].iterrows():
-    new_cases =  subset['Confirmed',r['State']].diff()
-    #new_deaths = subset['Deaths',r['State']].diff() #TODO: add this for R_0 estimations?
-    current_cases = subset['Confirmed',r['State']].diff().rolling(d_i_r).sum()   # Sum last 15 days of new cases to estimate currently infected number
-    beta = new_cases/current_cases    # new cases/current infection
-    mu = new_cases.shift(periods=d_i_r)/current_cases
-    r_0 = (beta/mu).rolling(7).mean()
-    plt.plot(subset.index, r_0,linewidth=3, label=r['State'])
-plt.plot((pd.datetime(2020,6,25),subset.index[-1]),(1.0,1), linewidth=3, label='Constant Case Level', c='r')
-plt.title('R_0 very basic estimation')
-plt.ylabel('R_0')
-plt.xlabel('Date')
-plt.ylim(0,5)
-plt.legend()
-plt.grid(which='both')
 
 # New Deaths Per Capita
 # Context Deaths:
