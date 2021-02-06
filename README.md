@@ -3,9 +3,9 @@
 
 A simple dump of my code to track covid cases with graphs
 
-See my notebook on [tracking new cases](Covid Data Plots.ipynb)
+See my notebook on [tracking new cases](Covid_Data_Plots.ipynb)
 
-Or my notebook on [tracking vaccines administered](Covid Vaccine Progress.ipynb)
+Or my notebook on [tracking vaccines administered](Covid_Vaccine_Progress.ipynb)
 
 Note that notebooks don't update on github, so they will only show the latest data if run, or after I have pushed new versions to the repo. The dates of latest update and data are embedded in the workbook.
 
